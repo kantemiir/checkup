@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Размер текста из настроек телефона (modern-web-guidance: accessibility/respect-os-text-scale) -->
+<meta name="text-scale" content="scale">
+<title>Checkup — бесплатная проверка компьютера</title>
+<meta name="description" content="Checkup проверит батарею, диски, память, температуру и сбои Windows и простыми словами скажет, что делать. Бесплатно, без рекламы и регистрации.">
+<meta name="theme-color" content="#1C2122">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Checkup — бесплатная проверка компьютера">
+<meta property="og:description" content="Батарея, диски, память, температура и сбои Windows — простыми словами. Для Windows 10 и 11.">
+<meta property="og:image" content="https://kantemiir.github.io/checkup/assets/screen-diagnostics.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="580">
+<meta property="og:image:alt" content="Окно Checkup: восемь блоков с результатами проверки компьютера">
+<meta property="og:site_name" content="Checkup by kantemiir">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:url" content="https://kantemiir.github.io/checkup/">
+<link rel="canonical" href="https://kantemiir.github.io/checkup/">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preload" href="assets/manrope-800.ttf" as="font" type="font/ttf" crossorigin>
+<style>
+  @font-face { font-family: Manrope; src: url(assets/manrope-500.ttf) format("truetype"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: Manrope; src: url(assets/manrope-800.ttf) format("truetype"); font-weight: 800; font-display: swap; }
+
+  /* Цвета — как в программе (docs/DESIGN.md). Сайт, как и программа, только тёмный — это решение, а не недосмотр */
+  :root {
+    color-scheme: dark;
+    --bg: #1C2122; --tile: #0F1414; --line: #2E3738; --line2: #455153;
+    --text: #F2F5F5; --text2: #C9D1D1; --muted: #8F9A9B;
+    --teal: #5EECD0; --cyan: #45BFF0;
+    --brand: linear-gradient(90deg, #5EECD0, #45BFF0);
+    --hover: rgba(242, 245, 245, .07);
+    --radius: 16px;
+    /* Высота ответов в «Вопросах» анимируется до auto (css/animate-to-intrinsic-sizes) */
+    interpolate-size: allow-keywords;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  /* Движение — только если человек не просил его убрать; смена цвета при наведении остаётся (ui-behaviors/motion) */
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  /* Размеры в rem — растут вместе с размером текста в системе (accessibility/respect-os-text-scale).
+     font-size-adjust: запасной шрифт, пока грузится Manrope, не прыгает по размеру (visual-design/visually-stable-font-fallbacks) */
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 500 1.0625rem/1.55 Manrope, "Segoe UI", system-ui, sans-serif;
+    font-size-adjust: from-font;
+    font-variant-numeric: tabular-nums;
+  }
+  a { color: inherit; }
+  b, strong, h1, h2, h3 { font-weight: 800; }
+  h1, h2, h3, p { margin: 0; }
+  /* Заголовки — ровными строками, текст — без висячих слов (visual-design/improve-text-layout-and-legibility) */
+  h1, h2, h3 { text-wrap: balance; }
+  p, li { text-wrap: pretty; }
+  img { max-width: 100%; display: block; }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(1.625rem, 1.2rem + 1.6vw, 2.125rem); line-height: 1.15; letter-spacing: -.01em; }
+  .lead2 { color: var(--muted); margin-top: 10px; max-width: 640px; }
+
+  /* Шапка */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 800; font-size: 1.125rem; }
+  .brand img { width: 30px; height: 30px; }
+  .by { font-size: .8125rem; background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .toplink { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: .9375rem;
+             padding: 6px 12px; border-radius: 999px; transition: background .15s, color .15s; }
+  .toplink:hover { background: var(--hover); color: var(--text); }
+
+  /* Иконки — те же линии 24×24, что в программе */
+  .ic { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Первый экран */
+  .hero { padding: 40px 0 56px; }
+  .hero h1 { font-size: clamp(2.125rem, 1.2rem + 4vw, 3.625rem); line-height: 1.05; letter-spacing: -.02em; max-width: 820px; }
+  .hero h1 em { font-style: normal; background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero .lead { margin-top: 18px; font-size: clamp(1.0625rem, 1rem + .5vw, 1.25rem); color: var(--text2); max-width: 640px; }
+  .cta { margin-top: 30px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 26px;
+         border-radius: 999px; font: inherit; font-weight: 800; font-size: 1.0625rem; text-decoration: none; cursor: pointer;
+         border: 2px solid var(--line2); background: transparent; color: var(--text); transition: background .15s, border-color .15s; }
+  .btn:hover { background: var(--hover); border-color: var(--muted); }
+  @media (prefers-reduced-motion: no-preference) { .btn:active { transform: translateY(1px); } }
+  .btn.primary { background: var(--teal); border-color: var(--teal); color: #0F1414; }
+  .btn.primary:hover { background: #7FF2DB; border-color: #7FF2DB; }
+  .meta { color: var(--muted); font-size: .9375rem; }
+  .phone-note { display: none; margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line2); border-radius: 12px; color: var(--text2); font-size: .9375rem; }
+  .phone-note button { margin-top: 10px; min-height: 40px; padding: 0 16px; font-size: .9375rem; }
+  @media (max-width: 760px) and (pointer: coarse) { .phone-note { display: block; } }
+  .share-status { display: block; margin-top: 8px; color: var(--teal); font-size: .875rem; }
+  .share-status:empty { display: none; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  .shot { margin-top: 44px; }
+  .shot img { width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--line2);
+              box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .shot figcaption { margin-top: 12px; color: var(--muted); font-size: .875rem; text-align: center; }
+
+  /* Что проверяет */
+  .grid { margin-top: 30px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 28px; }
+  .item { padding: 18px 0 22px; border-top: 2px solid var(--line); }
+  .item h3 { display: flex; align-items: center; gap: 10px; font-size: 1.0625rem; }
+  .item h3 .ic { color: var(--muted); }
+  .item p { margin-top: 8px; color: var(--muted); font-size: .9375rem; line-height: 1.5; }
+  .stress { margin-top: 26px; display: flex; gap: 18px; align-items: flex-start; padding: 22px 24px;
+            border: 1px solid var(--line2); border-radius: var(--radius); }
+  .stress .ic { width: 28px; height: 28px; color: var(--teal); margin-top: 2px; }
+  .stress p { color: var(--text2); margin-top: 6px; }
+
+  /* Безопасно */
+  .three { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  .three h3 { display: flex; align-items: center; gap: 10px; font-size: 1.125rem; }
+  .three h3 .ic { color: var(--teal); }
+  .three p { margin-top: 8px; color: var(--muted); font-size: .9375rem; }
+
+  /* Как запустить */
+  .steps { margin: 30px 0 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 20px; max-width: 760px; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 16px; align-items: start; }
+  .steps li::before { content: counter(s); width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line2);
+                      display: grid; place-items: center; font-weight: 800; font-size: .9375rem; color: var(--muted); }
+  .steps b { display: block; }
+  .steps span { color: var(--muted); font-size: .9375rem; }
+  .faq { margin-top: 34px; max-width: 760px; }
+  /* Вопросы — <details> (ui-components/accordion): можно открыть несколько сразу, закрытый ответ находится поиском по странице */
+  .faq details { border-top: 1px solid var(--line); }
+  .faq details:last-child { border-bottom: 1px solid var(--line); }
+  .faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+                 padding: 16px 0; font-weight: 800; transition: color .15s; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: ""; width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+                        transform: rotate(45deg) translateY(-3px); flex: none; }
+  .faq details[open] summary::after { transform: rotate(-135deg) translateY(-1px); }
+  .faq summary:hover { color: var(--teal); }
+  .faq details::details-content { overflow: clip; contain: layout; block-size: 0; }
+  .faq details[open]::details-content { block-size: auto; }
+  @media (prefers-reduced-motion: no-preference) {
+    .faq summary::after { transition: transform .2s; }
+    .faq details::details-content { transition: block-size .3s ease, content-visibility .3s allow-discrete; }
+  }
+  .faq p { padding: 0 0 18px; color: var(--text2); font-size: .9375rem; }
+
+  /* Автор */
+  .author { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: start; }
+  .author img { width: 64px; height: 64px; }
+  .author .role { color: var(--muted); margin-top: 2px; }
+  .author p.say { margin-top: 14px; color: var(--text2); max-width: 600px; }
+  .author .cta { margin-top: 22px; }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0 44px; color: var(--muted); font-size: .8125rem; }
+  footer p + p { margin-top: 6px; }
+  footer details { margin: 6px 0; }
+  footer summary { cursor: pointer; width: fit-content; }
+  footer summary:hover { color: var(--teal); }
+  footer ul { margin: 6px 0 0 18px; }
+  footer a { color: var(--text2); }
+  .hash { font-family: Consolas, "Cascadia Mono", monospace; word-break: break-all; color: var(--text2); }
+
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } .three { grid-template-columns: 1fr; gap: 22px; } }
+  @media (max-width: 520px) {
+    body { font-size: 1rem; }
+    section { padding: 44px 0; }
+    .grid { grid-template-columns: 1fr; }
+    .btn { width: 100%; }
+    .toplink span { display: none; }
+    .stress { padding: 18px; }
+    .author { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#" aria-label="Checkup — в начало">
+      <img src="assets/icon.svg" alt="" width="30" height="30">
+      <span>Checkup <span class="by">by kantemiir</span></span>
+    </a>
+    <a class="toplink" href="https://t.me/kantemiir" target="_blank" rel="noopener" aria-label="Написать автору">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5,4.5 H19.5 A2,2 0 0 1 21.5,6.5 V15 A2,2 0 0 1 19.5,17 H11 L6.5,20.5 V17 H4.5 A2,2 0 0 1 2.5,15 V6.5 A2,2 0 0 1 4.5,4.5 Z M8,10.8 V10.9 M12,10.8 V10.9 M16,10.8 V10.9"/></svg>
+      <span>Написать автору</span>
+    </a>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>Что не так с компьютером&nbsp;— <em>понятно за минуту</em></h1>
+      <p class="lead">Checkup проверит батарею, диски, память, температуру и сбои Windows и простыми словами скажет, что делать. Бесплатно, без рекламы и регистрации.</p>
+      <div class="cta">
+        <a class="btn primary" href="Checkup-1.8.zip" download>
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,3.5 V15 M7,10.5 L12,15.5 L17,10.5 M4.5,19.5 H19.5"/></svg>
+          Скачать для Windows
+        </a>
+        <span class="meta">Версия 1.8 · 60 МБ · Windows 10 и 11</span>
+      </div>
+      <div class="phone-note" id="phone-note">
+        Checkup — программа для компьютера с Windows, на телефоне она не запустится. Отправьте ссылку себе и откройте её на компьютере.
+        <br><button class="btn" type="button" id="share">Отправить ссылку</button>
+        <span class="share-status" id="share-status" role="status"></span>
+      </div>
+
+      <figure class="shot" style="margin-left:0;margin-right:0">
+        <img src="assets/screen-diagnostics.png" width="1280" height="580" fetchpriority="high"
+             alt="Окно Checkup: восемь блоков с результатами проверки — батарея, сбои Windows, память, место на диске, охлаждение, здоровье диска, автозагрузка, драйверы">
+        <figcaption>Пример: так Checkup показывает результат проверки</figcaption>
+      </figure>
+    </div>
+
+    <section id="what">
+      <h2>Что проверяет</h2>
+      <p class="lead2">Восемь пунктов, у каждого — вывод и совет. Нажмёте на блок — увидите подробности.</p>
+      <div class="grid">
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3,7 H17 A2,2 0 0 1 19,9 V15 A2,2 0 0 1 17,17 H3 A2,2 0 0 1 1,15 V9 A2,2 0 0 1 3,7 Z M22,10.5 V13.5 M5,10.5 V13.5 M8.5,10.5 V13.5"/></svg>Батарея</h3>
+          <p>Сколько осталось от новой и не пора ли менять. Для ноутбуков.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4,3.5 H20 A2,2 0 0 1 22,5.5 V14.5 A2,2 0 0 1 20,16.5 H4 A2,2 0 0 1 2,14.5 V5.5 A2,2 0 0 1 4,3.5 Z M8,20.5 H16 M12,16.5 V20.5 M9,8 V8.8 M15,8 V8.8 M8.6,13 Q12,10.2 15.4,13"/></svg>Сбои Windows</h3>
+          <p>Синие экраны и внезапные выключения: когда были и что, вероятно, виновато.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2,6.5 H22 V15 H2 Z M5.5,9 H8.5 V12.5 H5.5 Z M10.5,9 H13.5 V12.5 H10.5 Z M15.5,9 H18.5 V12.5 H15.5 Z M5,15 V18.5 M9,15 V18.5 M15,15 V18.5 M19,15 V18.5"/></svg>Оперативная память</h3>
+          <p>Сколько стоит, есть ли свободные разъёмы и хватает ли её.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,3 A9,9 0 1 1 11.99,3 Z M12,3 V12 H21"/></svg>Место на диске</h3>
+          <p>Сколько свободно на диске C: и что можно почистить.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10,14.3 V5 A2,2 0 0 1 14,5 V14.3 A4,4 0 1 1 10,14.3 Z M12,17.8 V9"/></svg>Охлаждение</h3>
+          <p>Температура процессора и видеокарты — в покое и под нагрузкой.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2,13 L5,6.2 A1.6,1.6 0 0 1 6.4,5.2 H17.6 A1.6,1.6 0 0 1 19,6.2 L22,13 M2,13 H22 V17.5 A1.5,1.5 0 0 1 20.5,19 H3.5 A1.5,1.5 0 0 1 2,17.5 Z M6,16 V16.1 M9.5,16 V16.1"/></svg>Здоровье диска</h3>
+          <p>Износ и ошибки SSD и жёстких дисков — пока данные целы.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,2.5 V11 M6.4,7 A8.2,8.2 0 1 0 17.6,7"/></svg>Автозагрузка</h3>
+          <p>Что запускается вместе с Windows и замедляет включение.</p>
+        </div>
+        <div class="item">
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,9 A3,3 0 1 1 11.99,9 Z M12,5.5 A6.5,6.5 0 1 1 11.99,5.5 Z M12,2.5 V5.5 M12,18.5 V21.5 M2.5,12 H5.5 M18.5,12 H21.5 M5.3,5.3 L7.4,7.4 M16.6,16.6 L18.7,18.7 M18.7,5.3 L16.6,7.4 M5.3,18.7 L7.4,16.6"/></svg>Драйверы и Windows</h3>
+          <p>Устройства с ошибками, обновления, активация и антивирус.</p>
+        </div>
+      </div>
+      <div class="stress">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2,12 H6 L9,4.5 L15,19.5 L18,12 H22"/></svg>
+        <div>
+          <h3>И стресс-тест</h3>
+          <p>Нагрузит процессор и видеокарту на несколько минут и покажет на графике, не перегревается ли компьютер. Станет слишком горячо — остановится сам.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="safe">
+      <h2>Без сюрпризов</h2>
+      <div class="three">
+        <div>
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9,14 L4,9 L9,4 M4,9 H14.5 A5.5,5.5 0 0 1 14.5,20 H11"/></svg>Ничего не меняет без вашего нажатия</h3>
+          <p>Проверка только смотрит. Настройки Windows и драйвер датчиков программа ставит лишь после вашего нажатия, а кнопка «Вернуть как было» возвращает их назад. Очистка диска — исключение: удалённые ею временные файлы не вернуть.</p>
+        </div>
+        <div>
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,2.5 L20,5.5 V11.5 C20,16.5 16.5,20 12,21.5 C7.5,20 4,16.5 4,11.5 V5.5 Z M8.5,12 L11,14.5 L15.5,9.5"/></svg>Ничего не отправляет</h3>
+          <p>Ничего не собирает и не отправляет о компьютере. В интернет заглядывает только узнать, не вышла ли новая версия. Работает и без интернета.</p>
+        </div>
+        <div>
+          <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,20 L4.2,11.56 A4.5,4.5 0 1 1 12,8.5 A4.5,4.5 0 1 1 19.8,11.56 Z"/></svg>Бесплатно</h3>
+          <p>Без рекламы, регистрации и пробных периодов. Установка не нужна.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>Как запустить</h2>
+      <ol class="steps">
+        <li><div><b>Скачайте и распакуйте архив</b><span>Браузер может написать, что файл «редко скачивают» или «может быть опасным»: у программы нет платной цифровой подписи. Выберите «Сохранить» (в некоторых браузерах — «Всё равно сохранить»). Потом правой кнопкой по файлу → «Извлечь всё».</span></div></li>
+        <li><div><b>Откройте папку Checkup и запустите Checkup.exe</b><span>Windows спросит разрешение и напишет, что издатель неизвестный, — это из-за той же отсутствующей подписи. Нажмите «Да». Без прав администратора программа не видит датчики и диски.</span></div></li>
+        <li><div><b>Если появилось синее окно «Система Windows защитила ваш компьютер»</b><span>Нажмите «Подробнее» → «Выполнить в любом случае». Так Windows встречает новые программы без платной цифровой подписи.</span></div></li>
+      </ol>
+
+      <h3 id="faq-title" class="visually-hidden">Частые вопросы</h3>
+      <div class="faq" role="region" aria-labelledby="faq-title">
+        <details>
+          <summary>Антивирус ругается на программу</summary>
+          <p>Чтобы видеть температуру, Checkup ставит драйвер датчиков PawnIO — только когда вы сами нажмёте «Включить датчики». Некоторые антивирусы настороженно относятся к таким драйверам. Кроме того, сам файл Checkup.exe не подписан, собирается в один файл и просит права администратора — по этим признакам антивирус тоже может его заподозрить.</p>
+          <p>Не отключайте защиту целиком. Если антивирус убрал файл, верните его из карантина и добавьте в исключения только папку Checkup на этом компьютере — и только если контрольная сумма архива (внизу страницы) совпала. Сомневаетесь — напишите мне.</p>
+        </details>
+        <details>
+          <summary>Windows пишет, что приложение заблокировано</summary>
+          <p>На некоторых новых компьютерах с Windows 11 включена «Интеллектуальная система управления приложениями», и она не пускает программы без подписи; кнопки «Выполнить в любом случае» при этом нет.</p>
+          <p>Обойти её для одной программы нельзя: функция работает для всего компьютера сразу. Если её выключить, Windows защищает компьютер слабее, а на старых версиях Windows 11 включить её обратно, по сведениям Microsoft, можно только переустановкой системы (на свежих обновлениях — в настройках). Решайте сами и, если не уверены, сначала напишите мне.</p>
+        </details>
+        <details>
+          <summary>Нужен ли интернет?</summary>
+          <p>Нет. Скачали один раз — дальше программа работает без интернета. С интернетом она при запуске узнаёт на этом сайте, не вышла ли новая версия: читает только номер версии и ничего не скачивает.</p>
+        </details>
+        <details>
+          <summary>Как удалить?</summary>
+          <p>Если программа что-то меняла, сначала нажмите в ней «Вернуть как было». Потом удалите папку Checkup. Кое-что остаётся и после этого: пока программа работает, она распаковывает свои файлы (около 10 МБ) во временную папку Windows (%TEMP%\.net) — их можно удалить вручную или очисткой диска. А драйвер датчиков PawnIO, если вы его включали, остаётся в Windows, пока вы не нажмёте «Вернуть как было».</p>
+        </details>
+        <details>
+          <summary>Что-то сработало не так</summary>
+          <p>В программе справа вверху есть кнопка «Сообщить об ошибке»: она соберёт сведения о компьютере, а вы отправите их мне в Telegram. Сама программа ничего не отправляет.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="author">
+      <div class="author">
+        <img src="assets/icon.svg" alt="" width="64" height="64">
+        <div>
+          <h2>Кантемир</h2>
+          <p class="role">компьютерный мастер · «Личный мастер»</p>
+          <p class="say">Сделал Checkup для своей работы и раздаю бесплатно. Программа нашла проблему, а что делать — непонятно? Напишите, подскажу.</p>
+          <div class="cta">
+            <a class="btn" href="https://t.me/kantemiir" target="_blank" rel="noopener">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5,4.5 H19.5 A2,2 0 0 1 21.5,6.5 V15 A2,2 0 0 1 19.5,17 H11 L6.5,20.5 V17 H4.5 A2,2 0 0 1 2.5,15 V6.5 A2,2 0 0 1 4.5,4.5 Z M8,10.8 V10.9 M12,10.8 V10.9 M16,10.8 V10.9"/></svg>
+              Написать в Telegram
+            </a>
+            <a class="btn" href="https://pay.cloudtips.ru/p/e210dff6" target="_blank" rel="noopener">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12,20 L4.2,11.56 A4.5,4.5 0 1 1 12,8.5 A4.5,4.5 0 1 1 19.8,11.56 Z"/></svg>
+              Поддержать автора
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Checkup 1.8 · бесплатно · Windows 10 и 11 (64-бит). Тексты лицензий чужих компонентов — в папке «Лицензии» внутри архива.</p>
+    <details class="parts">
+      <summary>Чужие компоненты и их лицензии</summary>
+      <ul>
+        <li>.NET и WPF (Microsoft) — MIT</li>
+        <li>System.Management, System.IO.Ports (Microsoft), Mono.Posix.NETStandard — MIT</li>
+        <li>CommunityToolkit.Mvvm, QRCoder — MIT</li>
+        <li>LibreHardwareMonitorLib, DiskInfoToolkit, BlackSharp.Core, RAMSPDToolkit-NDD — MPL-2.0</li>
+        <li>HidSharp — Apache-2.0</li>
+        <li>Модули PawnIO (внутри библиотеки датчиков) — LGPL-2.1</li>
+        <li>PawnIO (установщик драйвера датчиков) и smartctl из smartmontools — GPL-2.0</li>
+        <li>Шрифт Manrope — SIL OFL 1.1: <a href="assets/OFL-Manrope.txt">текст лицензии</a></li>
+      </ul>
+    </details>
+    <p>Исходный код частей под GPL и LGPL можно запросить у автора: <a href="https://t.me/kantemiir" target="_blank" rel="noopener">t.me/kantemiir</a> — бесплатно или за стоимость носителя, в течение трёх лет.</p>
+    <p>Контрольная сумма архива SHA-256: <span class="hash">53e298ae717d7efc6a1ba5b30965e3dd7bb8731e572e68df3b10d00c58e1b041</span></p>
+    <p>Чтобы сверить, в PowerShell выполните: <span class="hash">Get-FileHash .\Checkup-1.8.zip -Algorithm SHA256</span>. Сумма лежит на этой же странице, поэтому защищает от порчи файла при скачивании, но не доказывает, откуда он: скачивайте только отсюда или по ссылке от автора.</p>
+    <p>Сайт не ставит cookie и не считает посетителей.</p>
+  </div>
+</footer>
+
+<script>
+  // На телефоне программа не запустится — помочь отправить ссылку себе на компьютер.
+  // Меню «Поделиться» телефона; нет его — копируем ссылку. Итог пишем рядом с кнопкой, в role="status"
+  // (modern-web-guidance: ui-components/copy-button), кнопку не блокируем.
+  (function () {
+    var btn = document.getElementById('share');
+    var status = document.getElementById('share-status');
+    if (!btn || !status) return;
+    btn.addEventListener('click', async function () {
+      var url = location.href.split('#')[0];
+      status.textContent = '';
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Checkup — проверка компьютера', url: url });
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return; // человек сам закрыл меню
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        status.textContent = 'Ссылка скопирована — отправьте её себе, например в «Избранное» Telegram.';
+      } catch (e) {
+        status.textContent = 'Не получилось скопировать. Адрес сайта: ' + url;
+      }
+    });
+  })();
+</script>
+</body>
+</html>
